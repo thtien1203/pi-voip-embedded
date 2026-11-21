@@ -1,6 +1,6 @@
 #include <iostream>
-#include "network.h"
-
+#include "network.hpp"
+#include "call.hpp"
 
 int createSocket() {
     int socketfd = socket(AF_INET, SOCK_DGRAM, 0);  // socket's id
@@ -63,11 +63,13 @@ void receiveLoop (int socketfd) {
         }
 
         buffer[byteReceive] = '\0';     // FIX LATER WHEN DO AUDIO BECAUSE IT IS NOT A TEXT
-        // who sent it
-        char senderIP[INET_ADDRSTRLEN];          // space for an IP as text, like "127.0.0.1"
-        inet_ntop(AF_INET, &(senderAddr.sin_addr), senderIP, sizeof(senderIP));
-        int senderPort = ntohs(senderAddr.sin_port);
-        std::cout << "From " << senderIP << ":" << senderPort
-                << " -> " << buffer << "\n";
+        handleIncoming(std::string(buffer));
+        // // MIGHT DELETE THIS PART LATER
+        // // who sent it
+        // char senderIP[INET_ADDRSTRLEN];          // space for an IP as text, like "127.0.0.1"
+        // inet_ntop(AF_INET, &(senderAddr.sin_addr), senderIP, sizeof(senderIP));
+        // int senderPort = ntohs(senderAddr.sin_port);
+        // std::cout << "From " << senderIP << ":" << senderPort
+        //         << " -> " << buffer << "\n";
     }
 }

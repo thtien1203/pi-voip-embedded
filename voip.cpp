@@ -1,8 +1,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <thread>
-#include "network.h"
-
+#include "network.hpp"
+#include "call.hpp"
 
 int main(int argc, char *argv[]) {
     if (argc != 4) {
@@ -59,12 +59,14 @@ int main(int argc, char *argv[]) {
         std::string message;
         std::getline(std::cin, message);
         if (message == "quit" || message == "q") {
+            handleCommand(socketfd, receiveAddr, message);
             break;
         }
-        if (!sendMessage(socketfd, receiveAddr, message)) {
-            close(socketfd);
-            return 1;
-        }
+        handleCommand(socketfd, receiveAddr, message);
+        // if (!sendMessage(socketfd, receiveAddr, message)) {
+        //     close(socketfd);
+        //     return 1;
+        // }
     }
 
     close(socketfd);

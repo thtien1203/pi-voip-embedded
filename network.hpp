@@ -5,8 +5,8 @@
 #include <iostream>
 #include <string>
 
-#ifndef NETWORK_H
-#define NETWORK_H
+#ifndef NETWORK_HPP
+#define NETWORK_HPP
 
 int createSocket();
 bool receiverAddress(sockaddr_in &myAddr, int socketfd, int my_port);
