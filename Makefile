@@ -1,11 +1,11 @@
 CC = g++
-CFLAGS = -std=c++17 -Wall -Werror -pedantic -g -O3 -pthread
+CFLAGS = -std=c++17 -Wall -Werror -pedantic -g -O3 -pthread 
 
 # .hpp files
-DEPS = network.hpp call.hpp
+DEPS = network.hpp call.hpp audio.hpp packet.hpp
 
 # compiled .o files (everything except voip.cpp, which has main)
-OBJECTS = network.o call.o
+OBJECTS = network.o call.o audio.o
 
 # name of the program
 PROGRAM = voip
@@ -18,7 +18,7 @@ all: $(PROGRAM)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(PROGRAM): voip.o $(LIBRARY)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ -lportaudio
 
 $(LIBRARY): $(OBJECTS)
 	ar rcs $@ $^

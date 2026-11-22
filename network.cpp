@@ -1,6 +1,11 @@
 #include <iostream>
+#include <vector>
+#include <cstring>
 #include "network.hpp"
 #include "call.hpp"
+#include "packet.hpp"
+#include "audio.hpp"
+#include <chrono>
 
 int createSocket() {
     int socketfd = socket(AF_INET, SOCK_DGRAM, 0);  // socket's id
@@ -36,19 +41,13 @@ bool senderAddress(sockaddr_in &receiveAddr, const std::string &ip_address, int 
     return true;
 }
 
-bool sendMessage(int socketfd, const sockaddr_in& receiveAddr, const std::string& message) {
-    //std::getline(std::cin, message);
-    // socket id, message, message length, 0, cast address, size 
-    ssize_t send_m = sendto(socketfd, message.c_str(), message.size(), 0, reinterpret_cast<const sockaddr*>(&receiveAddr), sizeof(receiveAddr));
-    if (send_m == -1) {
-        std::cerr << "Failed to send the message\n";
-        return false;
-        // perror("sendto");
-    }
-    return true;
+bool sendMessage(PacketType type, int socketfd, const sockaddr_in& receiveAddr, const std::string& message) {
+
+    return sendPacket(socketfd, receiveAddr, type, message.data(), message.size());
 }
+
 void receiveLoop (int socketfd) {
-    char buffer[1024];
+    uint8_t buffer[MAX_PACKET_SIZE];
     sockaddr_in senderAddr {};
     socklen_t senderLen = sizeof(senderAddr);
 
@@ -56,20 +55,44 @@ void receiveLoop (int socketfd) {
     while (true) {
         // receive from (who sent it) (how many bytes it wrote)
         senderLen = sizeof(senderAddr);
-        ssize_t byteReceive = recvfrom(socketfd, buffer, sizeof(buffer)-1, 0, reinterpret_cast<sockaddr*>(&senderAddr), &senderLen);
+        ssize_t byteReceive = recvfrom(socketfd, buffer, sizeof(buffer), 0, reinterpret_cast<sockaddr*>(&senderAddr), &senderLen);
         if (byteReceive == -1) {
             perror("recvfrom");
             continue;
         }
+        if (byteReceive < 1) {
+            continue;
+        }
 
-        buffer[byteReceive] = '\0';     // FIX LATER WHEN DO AUDIO BECAUSE IT IS NOT A TEXT
-        handleIncoming(std::string(buffer));
-        // // MIGHT DELETE THIS PART LATER
-        // // who sent it
-        // char senderIP[INET_ADDRSTRLEN];          // space for an IP as text, like "127.0.0.1"
-        // inet_ntop(AF_INET, &(senderAddr.sin_addr), senderIP, sizeof(senderIP));
-        // int senderPort = ntohs(senderAddr.sin_port);
-        // std::cout << "From " << senderIP << ":" << senderPort
-        //         << " -> " << buffer << "\n";
+        PacketType type = static_cast<PacketType>(buffer[0]);
+        if (type == PacketType::CONTROL || type == PacketType::CHAT) {
+            std::string text(reinterpret_cast<const char *>(buffer + 1), byteReceive - 1);
+            handleIncoming(type, text);
+        }
+        else if (type == PacketType::AUDIO) {
+            if (callState != CallState::CONNECTED) {
+                continue;
+            }
+            if (static_cast<size_t>(byteReceive - 1) != AUDIO_BYTES) {
+                continue;
+            }
+        
+            int16_t samples[FRAMES_PER_BUFFER];
+            std::memcpy(samples, buffer + 1, AUDIO_BYTES);
+            writeChunk(samples);    // play it
+
+        }
     }
+}
+
+bool sendPacket(int socketfd, const sockaddr_in& receiveAddr, PacketType type, const void* data, size_t dataSize) {  // add a label to my data and sends it to other person
+    std::vector<uint8_t> buffer(1 + dataSize);
+    buffer[0] = static_cast<uint8_t>(type);
+    std::memcpy(buffer.data() + 1, data, dataSize);  // copy data(copy to, copy from, size)
+    ssize_t send_m = sendto(socketfd, buffer.data(), buffer.size(), 0, reinterpret_cast<const sockaddr*>(&receiveAddr), sizeof(receiveAddr));
+    if (send_m == -1) {
+        perror("sendto");
+        return false;
+    }
+    return true;
 }

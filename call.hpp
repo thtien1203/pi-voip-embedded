@@ -1,12 +1,13 @@
-#ifndef CALL_HPP
-#define CALL_HPP
+#pragma once
 #include <iostream>
 #include <netinet/in.h>
 #include <string>
 #include <atomic>
+#include "packet.hpp"
 
 enum class CallState {IDLE, CALLING, RINGING, CONNECTED};
 extern std::atomic<CallState> callState;
-void handleIncoming(const std::string &message);
+extern std::atomic<bool> running;
+void handleIncoming(PacketType type, const std::string &message);
 void handleCommand(int socketfd, const sockaddr_in& receiveAddr, const std::string& text);
-#endif
+void audioSendLoop(int socketfd, sockaddr_in receiveAddr);

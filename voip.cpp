@@ -3,6 +3,7 @@
 #include <thread>
 #include "network.hpp"
 #include "call.hpp"
+#include "audio.hpp"
 
 int main(int argc, char *argv[]) {
     if (argc != 4) {
@@ -43,30 +44,43 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    sockaddr_in receiveAddr {};
+    if (!senderAddress(receiveAddr, ip_address, other_port)) {
+        close(socketfd);
+        return 1;
+    }
+
+    if (!audioInit()) { // start audio
+        close(socketfd);
+        return 1;
+    }
+    if (!audioStart()) {
+        audioTerminate();
+        close(socketfd);
+        return 1;
+    }
+    std::thread audioThread(audioSendLoop, socketfd, receiveAddr);
+
     std::thread t1(receiveLoop, socketfd);
     t1.detach();    // let this thread runs on this own
 
     // fill the address for receiver    (THIS IS SENDER, SENDER NEEDS RECEIVER'S IP ADDRESS AND PORT)
                                         // SENDER -> RECEIVER, RECEIVER -> SENDER
                                     
-    sockaddr_in receiveAddr {};
-    if (!senderAddress(receiveAddr, ip_address, other_port)) {
-        close(socketfd);
-        return 1;
-    }
+    // sockaddr_in receiveAddr {};
+    // if (!senderAddress(receiveAddr, ip_address, other_port)) {
+    //     close(socketfd);
+    //     return 1;
+    // }
     std::cout << "Address converted successfully\n";
     while (true) {
         std::string message;
         std::getline(std::cin, message);
         if (message == "quit" || message == "q") {
-            handleCommand(socketfd, receiveAddr, message);
+            handleCommand(socketfd, receiveAddr, message);  // show hangup both sides
             break;
         }
         handleCommand(socketfd, receiveAddr, message);
-        // if (!sendMessage(socketfd, receiveAddr, message)) {
-        //     close(socketfd);
-        //     return 1;
-        // }
     }
 
     close(socketfd);
