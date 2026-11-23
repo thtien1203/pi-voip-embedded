@@ -5,6 +5,7 @@
 #include "call.hpp"
 #include "packet.hpp"
 #include "audio.hpp"
+#include "jitter.hpp"
 #include <chrono>
 
 int createSocket() {
@@ -79,7 +80,8 @@ void receiveLoop (int socketfd) {
         
             int16_t samples[FRAMES_PER_BUFFER];
             std::memcpy(samples, buffer + 1, AUDIO_BYTES);
-            writeChunk(samples);    // play it
+            //writeChunk(samples);    // play it, thread wait for the speaker
+            jitterPush(samples);
 
         }
     }

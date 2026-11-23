@@ -59,6 +59,7 @@ int main(int argc, char *argv[]) {
         close(socketfd);
         return 1;
     }
+    std::thread playbackThread(playbackLoop);
     std::thread audioThread(audioSendLoop, socketfd, receiveAddr);
 
     std::thread t1(receiveLoop, socketfd);
@@ -67,22 +68,23 @@ int main(int argc, char *argv[]) {
     // fill the address for receiver    (THIS IS SENDER, SENDER NEEDS RECEIVER'S IP ADDRESS AND PORT)
                                         // SENDER -> RECEIVER, RECEIVER -> SENDER
                                     
-    // sockaddr_in receiveAddr {};
-    // if (!senderAddress(receiveAddr, ip_address, other_port)) {
-    //     close(socketfd);
-    //     return 1;
-    // }
     std::cout << "Address converted successfully\n";
     while (true) {
         std::string message;
         std::getline(std::cin, message);
         if (message == "quit" || message == "q") {
-            handleCommand(socketfd, receiveAddr, message);  // show hangup both sides
+            if (callState != CallState::IDLE) {
+                handleCommand(socketfd, receiveAddr, "hangup");  // show hangup both sides
+            }
             break;
         }
         handleCommand(socketfd, receiveAddr, message);
     }
-
+    running = false;    // tell audio and playback thread stop
+    audioThread.join();
+    playbackThread.join();
+    audioStop();
+    audioTerminate();
     close(socketfd);
     return 0;
 }

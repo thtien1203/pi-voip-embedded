@@ -1,7 +1,9 @@
 #include "call.hpp"
 #include <iostream>
+#include <algorithm>
 #include "network.hpp"
 #include "audio.hpp"
+#include "jitter.hpp"
 
 std::atomic<CallState> callState{CallState::IDLE};
 std::atomic<bool> running{true};
@@ -31,6 +33,7 @@ void handleIncoming(PacketType type, const std::string &message) {
             if (callState != CallState::IDLE) {
                 callState = CallState::IDLE;
                 std::cout << "Call ended\n";
+                jitterClear();
             }
         }
     }
@@ -66,6 +69,7 @@ void handleCommand(int socketfd, const sockaddr_in& receiveAddr, const std::stri
             if (sendMessage(PacketType::CONTROL, socketfd, receiveAddr, "HANGUP")) {   
                 callState = CallState::IDLE;
                 std::cout << "Call ended\n";
+                jitterClear();
             }  
         }
         else {
@@ -98,4 +102,17 @@ void audioSendLoop(int socketfd, sockaddr_in receiveAddr) {
 
     }
 
+}
+
+void playbackLoop() {
+    int16_t chunk[FRAMES_PER_BUFFER];
+    while (running) {
+        bool hasAudio = (callState == CallState::CONNECTED) && jitterPop(chunk);
+        if (!hasAudio) {
+            // no call, or queue empty, just play silence
+            std::fill(chunk, chunk + FRAMES_PER_BUFFER, 0);
+        }
+
+        writeChunk(chunk);
+    }
 }

@@ -2,10 +2,10 @@ CC = g++
 CFLAGS = -std=c++17 -Wall -Werror -pedantic -g -O3 -pthread 
 
 # .hpp files
-DEPS = network.hpp call.hpp audio.hpp packet.hpp
+DEPS = network.hpp call.hpp audio.hpp packet.hpp jitter.hpp
 
 # compiled .o files (everything except voip.cpp, which has main)
-OBJECTS = network.o call.o audio.o
+OBJECTS = network.o call.o audio.o jitter.o
 
 # name of the program
 PROGRAM = voip
