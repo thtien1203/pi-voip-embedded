@@ -6,6 +6,7 @@
 #include "packet.hpp"
 #include "audio.hpp"
 #include "jitter.hpp"
+#include "codec.hpp"
 #include <chrono>
 
 int createSocket() {
@@ -74,12 +75,15 @@ void receiveLoop (int socketfd) {
             if (callState != CallState::CONNECTED) {
                 continue;
             }
-            if (static_cast<size_t>(byteReceive - 1) != AUDIO_BYTES) {
-                continue;
-            }
+            // if (static_cast<size_t>(byteReceive - 1) != AUDIO_BYTES) {
+            //     continue;
+            // }
         
             int16_t samples[FRAMES_PER_BUFFER];
-            std::memcpy(samples, buffer + 1, AUDIO_BYTES);
+            //std::memcpy(samples, buffer + 1, AUDIO_BYTES);
+            if (!decodeChunk(buffer + 1, byteReceive - 1, samples)) {
+                continue;
+            }
             //writeChunk(samples);    // play it, thread wait for the speaker
             jitterPush(samples);
 

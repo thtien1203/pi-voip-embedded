@@ -4,6 +4,8 @@
 #include "network.hpp"
 #include "call.hpp"
 #include "audio.hpp"
+#include "codec.hpp"
+#include "hardware.hpp"
 
 int main(int argc, char *argv[]) {
     if (argc != 4) {
@@ -50,11 +52,25 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // rasp pi 5
+    if (!hardwareInit()) {
+        close(socketfd);
+        return 1;
+    } 
+
     if (!audioInit()) { // start audio
         close(socketfd);
         return 1;
     }
     if (!audioStart()) {
+        audioTerminate();
+        close(socketfd);
+        return 1;
+    }
+
+    // create encoder and decoder
+    if (!codecInit()) {
+        audioStop();
         audioTerminate();
         close(socketfd);
         return 1;
@@ -78,13 +94,20 @@ int main(int argc, char *argv[]) {
             }
             break;
         }
+        if (message == "b") {
+            onButtonPressed(socketfd, receiveAddr);
+            continue;
+        }
         handleCommand(socketfd, receiveAddr, message);
     }
     running = false;    // tell audio and playback thread stop
     audioThread.join();
     playbackThread.join();
+    codecDestroy();
     audioStop();
     audioTerminate();
+    setLed(false);
+    hardwareCleanup();
     close(socketfd);
     return 0;
 }

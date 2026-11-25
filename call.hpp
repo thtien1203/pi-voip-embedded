@@ -13,3 +13,4 @@ void handleIncoming(PacketType type, const std::string &message);
 void handleCommand(int socketfd, const sockaddr_in& receiveAddr, const std::string& text);
 void audioSendLoop(int socketfd, sockaddr_in receiveAddr);
 void playbackLoop();
+void onButtonPressed(int socketfd, const sockaddr_in& receiveAddr);
